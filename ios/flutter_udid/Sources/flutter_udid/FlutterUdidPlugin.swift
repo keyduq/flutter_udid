@@ -1,7 +1,6 @@
 import Flutter
 import UIKit
 import KeychainAccess
-import SAMKeychain
 
 public class FlutterUdidPlugin: NSObject, FlutterPlugin {
   
@@ -102,12 +101,13 @@ public class FlutterUdidPlugin: NSObject, FlutterPlugin {
    * @return Migrated UUID, or nil if no legacy data exists
    */
   private func migrateFromLegacyKeychain(to newKeychain: Keychain, key: String) -> String? {
-    // Build legacy SAMKeychain
+    // Build legacy Keychain
     let legacyService = Bundle.main.infoDictionary?["CFBundleName"] as? String ?? Constants.defaultServiceName
     let legacyAccount = Bundle.main.bundleIdentifier ?? Constants.defaultBundleId
+    let legacyKeychain = Keychain(service: legacyService)
     
     // Try to read UUID from legacy
-    guard let legacyUUID = SAMKeychain.password(forService: legacyService, account: legacyAccount),
+    guard let legacyUUID = try? legacyKeychain.get(legacyAccount),
           !legacyUUID.isEmpty else {
       return nil
     }
@@ -118,7 +118,7 @@ public class FlutterUdidPlugin: NSObject, FlutterPlugin {
       try newKeychain.set(legacyUUID, key: key)
       
       // Clean up legacy data
-      SAMKeychain.deletePassword(forService: legacyService, account: legacyAccount)
+      try legacyKeychain.remove(legacyAccount)
       
     } catch let error {
       // Even if migration fails, it doesn't affect this return result
