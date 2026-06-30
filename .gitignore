@@ -27,3 +27,4 @@
 .dart_tool/
 build/
 .swiftpm/
+.build/
